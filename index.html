@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        #player {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+
+    <script>
+        // YouTube IFrame API 読み込み
+        var tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+
+        var player;
+        var hasEnded = false;
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: 'dSfchdERXWY',
+                playerVars: {
+                    autoplay: 0,
+                    rel: 0,
+                    modestbranding: 1,
+                    playsinline: 1,
+                    fs: 1,
+                    iv_load_policy: 3,
+                    disablekb: 0
+                },
+                width: '100%',
+                height: '100%',
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            // iframe をフル画面サイズに
+            var iframe = event.target.getIframe();
+            iframe.style.width  = '100%';
+            iframe.style.height = '100%';
+        }
+
+        function onPlayerStateChange(event) {
+            // 動画が終了(ENDED = 0)したとき
+            if (event.data === YT.PlayerState.ENDED && !hasEnded) {
+                hasEnded = true;
+                var duration = player.getDuration();
+                // 最後の1フレーム手前へシークして一時停止
+                // → 関連動画サムネイルではなく最後の映像で止まる
+                player.seekTo(duration - 0.1, true);
+                player.pauseVideo();
+            }
+        }
+
+        // ウィンドウリサイズ対応
+        window.addEventListener('resize', function () {
+            if (player && player.getIframe) {
+                var iframe = player.getIframe();
+                iframe.style.width  = '100%';
+                iframe.style.height = '100%';
+            }
+        });
+    </script>
+</body>
+</html>
