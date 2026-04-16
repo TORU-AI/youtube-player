@@ -36,6 +36,9 @@
 
         var player;
         var hasEnded = false;
+        var hasPausedAt295 = false;
+        var watchTimer = null;
+        var PAUSE_AT = 295; // 4分55秒
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
@@ -59,19 +62,46 @@
         }
 
         function onPlayerReady(event) {
-            // iframe をフル画面サイズに
             var iframe = event.target.getIframe();
             iframe.style.width  = '100%';
             iframe.style.height = '100%';
         }
 
+        function startWatching() {
+            if (watchTimer) return;
+            watchTimer = setInterval(function () {
+                if (!player || !player.getCurrentTime) return;
+                var current = player.getCurrentTime();
+                // 4分55秒(295秒)に達したら一時停止
+                if (!hasPausedAt295 && current >= PAUSE_AT) {
+                    hasPausedAt295 = true;
+                    player.seekTo(PAUSE_AT, true);
+                    player.pauseVideo();
+                }
+            }, 250);
+        }
+
+        function stopWatching() {
+            if (watchTimer) {
+                clearInterval(watchTimer);
+                watchTimer = null;
+            }
+        }
+
         function onPlayerStateChange(event) {
-            // 動画が終了(ENDED = 0)したとき
-            if (event.data === YT.PlayerState.ENDED && !hasEnded) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                // シークで295秒より前に戻されたらリセット
+                if (player.getCurrentTime() < PAUSE_AT) {
+                    hasPausedAt295 = false;
+                }
+                startWatching();
+            } else if (event.data === YT.PlayerState.PAUSED ||
+                       event.data === YT.PlayerState.BUFFERING) {
+                stopWatching();
+            } else if (event.data === YT.PlayerState.ENDED && !hasEnded) {
+                stopWatching();
                 hasEnded = true;
                 var duration = player.getDuration();
-                // 最後の1フレーム手前へシークして一時停止
-                // → 関連動画サムネイルではなく最後の映像で止まる
                 player.seekTo(duration - 0.1, true);
                 player.pauseVideo();
             }
