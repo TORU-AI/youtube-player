@@ -90,11 +90,13 @@
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
-                // シークで295秒より前に戻されたらリセット
-                if (player.getCurrentTime() < PAUSE_AT) {
-                    hasPausedAt295 = false;
+                // 4:55で一度も止まっていない間だけ監視
+                if (!hasPausedAt295) {
+                    startWatching();
+                } else {
+                    // 既に4:55で止まった後はタイマー不要
+                    stopWatching();
                 }
-                startWatching();
             } else if (event.data === YT.PlayerState.PAUSED ||
                        event.data === YT.PlayerState.BUFFERING) {
                 stopWatching();
