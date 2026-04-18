@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        #player {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+
+    <script>
+        var tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+
+        var player;
+        var hasEnded = false;
+        var hasPausedAt135 = false;
+        var watchTimer = null;
+        var PAUSE_AT = 135; // 2分15秒
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: 'u-9riU8vXt8',
+                playerVars: {
+                    autoplay: 0,
+                    rel: 0,
+                    modestbranding: 1,
+                    playsinline: 1,
+                    fs: 1,
+                    iv_load_policy: 3,
+                    disablekb: 0
+                },
+                width: '100%',
+                height: '100%',
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            var iframe = event.target.getIframe();
+            iframe.style.width  = '100%';
+            iframe.style.height = '100%';
+        }
+
+        function startWatching() {
+            if (watchTimer) return;
+            watchTimer = setInterval(function () {
+                if (!player || !player.getCurrentTime) return;
+                var current = player.getCurrentTime();
+                if (!hasPausedAt135 && current >= PAUSE_AT) {
+                    hasPausedAt135 = true;
+                    player.seekTo(PAUSE_AT, true);
+                    player.pauseVideo();
+                }
+            }, 250);
+        }
+
+        function stopWatching() {
+            if (watchTimer) {
+                clearInterval(watchTimer);
+                watchTimer = null;
+            }
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                // 2:15で一度も止まっていない間だけ監視
+                if (!hasPausedAt135) {
+                    startWatching();
+                } else {
+                    // 既に2:15で止まった後はタイマー不要
+                    stopWatching();
+                }
+            } else if (event.data === YT.PlayerState.PAUSED ||
+                       event.data === YT.PlayerState.BUFFERING) {
+                stopWatching();
+            } else if (event.data === YT.PlayerState.ENDED && !hasEnded) {
+                stopWatching();
+                hasEnded = true;
+                var duration = player.getDuration();
+                player.seekTo(duration - 0.1, true);
+                player.pauseVideo();
+            }
+        }
+
+        window.addEventListener('resize', function () {
+            if (player && player.getIframe) {
+                var iframe = player.getIframe();
+                iframe.style.width  = '100%';
+                iframe.style.height = '100%';
+            }
+        });
+    </script>
+</body>
+</html>
